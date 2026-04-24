@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Spoke cluster operations
 
 wait_for_healthy_cluster() {
@@ -10,19 +10,7 @@ wait_for_healthy_cluster() {
 }
 
 fix_monitoring_secrets() {
-    log_info "Fixing monitoring secrets (hub detachment artifacts)"
-
-    spoke_oc create secret generic observability-alertmanager-accessor \
-        --from-literal=token=dummy -n openshift-monitoring 2>/dev/null || true
-
-    local ca_cert
-    ca_cert=$(spoke_oc get configmap kube-root-ca.crt -n openshift-monitoring \
-        -o jsonpath='{.data.ca\.crt}' 2>/dev/null || echo "placeholder")
-    spoke_oc create secret generic hub-alertmanager-router-ca \
-        --from-literal=service-ca.crt="$ca_cert" -n openshift-monitoring 2>/dev/null || true
-
-    spoke_oc delete pod -n openshift-monitoring -l app.kubernetes.io/name=prometheus --ignore-not-found 2>/dev/null || true
-    log_info "Monitoring secrets fixed, prometheus restarted"
+    fix_monitoring_on spoke_oc
 }
 
 verify_container_storage_mount() {

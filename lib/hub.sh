@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Hub cluster operations
 
 argocd_refresh() {

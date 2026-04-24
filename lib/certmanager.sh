@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # cert-manager installation and test certificate management
 
 install_certmanager() {

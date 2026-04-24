@@ -36,9 +36,7 @@ wait_for() {
     local timeout="$1" interval="$2" desc="$3"
     shift 3
     local deadline=$(( $(date +%s) + timeout ))
-    local attempt=0
     while true; do
-        attempt=$(( attempt + 1 ))
         if "$@" 2>/dev/null; then
             return 0
         fi
@@ -53,41 +51,65 @@ wait_for() {
 hub_oc() {
     oc --server="$HUB_API" --insecure-skip-tls-verify=true "$@"
 }
+export -f hub_oc
 
 spoke_oc() {
     oc --kubeconfig="$SPOKE_KUBECONFIG" --insecure-skip-tls-verify=true "$@"
 }
+export -f spoke_oc
 
 seed_oc() {
     oc --kubeconfig="$SEED_KUBECONFIG" --insecure-skip-tls-verify=true "$@"
 }
+export -f seed_oc
+
+fetch_kubeconfig() {
+    local name="$1" ns="$2" varname="$3"
+    local path="${RESULTS_DIR}/${name}.kubeconfig"
+    hub_oc get secret -n "$ns" "${name}-admin-kubeconfig" \
+        -o jsonpath='{.data.kubeconfig}' | base64 -d > "$path"
+    eval "export ${varname}=${path}"
+    log_info "Fetched kubeconfig for $name → $path"
+}
 
 fetch_spoke_kubeconfig() {
-    local name="${1:-$SPOKE_NAME}" ns="${2:-$SPOKE_NAMESPACE}"
-    SPOKE_KUBECONFIG="${RESULTS_DIR}/${name}.kubeconfig"
-    hub_oc get secret -n "$ns" "${name}-admin-kubeconfig" \
-        -o jsonpath='{.data.kubeconfig}' | base64 -d > "$SPOKE_KUBECONFIG"
-    log_info "Fetched kubeconfig for $name → $SPOKE_KUBECONFIG"
+    fetch_kubeconfig "${1:-$SPOKE_NAME}" "${2:-$SPOKE_NAMESPACE}" SPOKE_KUBECONFIG
 }
 
 fetch_seed_kubeconfig() {
-    local name="${1:-$SEED_NAME}" ns="${2:-$SEED_NAMESPACE}"
-    SEED_KUBECONFIG="${RESULTS_DIR}/${name}.kubeconfig"
-    hub_oc get secret -n "$ns" "${name}-admin-kubeconfig" \
-        -o jsonpath='{.data.kubeconfig}' | base64 -d > "$SEED_KUBECONFIG"
-    log_info "Fetched kubeconfig for $name → $SEED_KUBECONFIG"
+    fetch_kubeconfig "${1:-$SEED_NAME}" "${2:-$SEED_NAMESPACE}" SEED_KUBECONFIG
+}
+
+# Create dummy monitoring secrets needed after hub detachment.
+# Usage: fix_monitoring_on <oc_wrapper_func>
+fix_monitoring_on() {
+    local oc_fn="$1"
+    log_info "Fixing monitoring secrets (hub detachment artifacts)"
+
+    "$oc_fn" create secret generic observability-alertmanager-accessor \
+        --from-literal=token=dummy -n openshift-monitoring 2>/dev/null || true
+
+    local ca_cert
+    ca_cert=$("$oc_fn" get configmap kube-root-ca.crt -n openshift-monitoring \
+        -o jsonpath='{.data.ca\.crt}' 2>/dev/null || echo "placeholder")
+    "$oc_fn" create secret generic hub-alertmanager-router-ca \
+        --from-literal=service-ca.crt="$ca_cert" -n openshift-monitoring 2>/dev/null || true
+
+    "$oc_fn" delete pod -n openshift-monitoring -l app.kubernetes.io/name=prometheus \
+        --ignore-not-found 2>/dev/null || true
+    log_info "Monitoring secrets fixed, prometheus restarted"
 }
 
 check_prerequisites() {
     local missing=()
-    for cmd in oc "$ENGINE" skopeo kustomize; do
+    for cmd in oc "$ENGINE" skopeo kustomize jq; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
     if (( ${#missing[@]} > 0 )); then
         log_error "Missing prerequisites: ${missing[*]}"
         return 1
     fi
-    log_info "Prerequisites OK: oc, $ENGINE, skopeo, kustomize"
+    log_info "Prerequisites OK: oc, $ENGINE, skopeo, kustomize, jq"
 }
 
 hub_login() {

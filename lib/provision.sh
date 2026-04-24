@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Spoke provisioning and deprovisioning
 
 deprovision_spoke() {
@@ -41,7 +41,7 @@ provision_spoke() {
     # Ensure pull-secret exists
     if ! hub_oc get secret pull-secret -n "$ns" &>/dev/null; then
         hub_oc get secret pull-secret -n "$SEED_NAMESPACE" -o json 2>/dev/null \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); d['metadata']={'name':'pull-secret','namespace':'$ns'}; json.dump(d,sys.stdout)" \
+            | jq ".metadata = {\"name\":\"pull-secret\",\"namespace\":\"$ns\"}" \
             | hub_oc apply -f -
     fi
 
@@ -55,7 +55,7 @@ provision_spoke() {
     if ! hub_oc get configmap extra-manifests-cm -n "$ns" &>/dev/null; then
         if [[ -n "${EXTRA_MANIFESTS_SOURCE_NS:-}" ]]; then
             hub_oc get configmap extra-manifests-cm -n "$EXTRA_MANIFESTS_SOURCE_NS" -o json \
-                | python3 -c "import json,sys; d=json.load(sys.stdin); d['metadata']={'name':'extra-manifests-cm','namespace':'$ns'}; json.dump(d,sys.stdout)" \
+                | jq ".metadata = {\"name\":\"extra-manifests-cm\",\"namespace\":\"$ns\"}" \
                 | hub_oc apply -f -
         else
             create_container_storage_configmap "$ns"
