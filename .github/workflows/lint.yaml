@@ -23,8 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install shfmt
-        run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
+      - uses: mfinelli/setup-shfmt@v2
       - name: Check formatting
         run: shfmt -d -i 4 -ci run-ibu-test.sh lib/*.sh
 

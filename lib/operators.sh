@@ -8,8 +8,8 @@ approve_all_install_plans() {
         [[ -z "$ns" ]] && continue
         spoke_oc patch installplan "$name" -n "$ns" --type=merge \
             -p '{"spec":{"approved":true}}' 2>/dev/null && count=$((count + 1))
-    done < <(spoke_oc get installplan -A --no-headers 2>/dev/null \
-        | grep "false$" | awk '{print $1"/"$2}')
+    done < <(spoke_oc get installplan -A --no-headers 2>/dev/null |
+        grep "false$" | awk '{print $1"/"$2}')
     log_info "Approved $count install plans"
 }
 

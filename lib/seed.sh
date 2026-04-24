@@ -66,9 +66,9 @@ EOF
     log_info "Waiting for seed generation (this takes 20-40 minutes)"
 
     local timeout=3600
-    local deadline=$(( $(date +%s) + timeout ))
+    local deadline=$(($(date +%s) + timeout))
 
-    while (( $(date +%s) < deadline )); do
+    while (($(date +%s) < deadline)); do
         local status
         status=$(seed_oc get seedgenerators seedimage \
             -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}' 2>/dev/null)

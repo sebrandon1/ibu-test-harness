@@ -11,18 +11,18 @@ wait_for_prep() {
     local timeout="${1:-1800}" run_label="$2"
     local timing_file="${RESULTS_DIR}/timing-${run_label}.txt"
 
-    echo "prep_start=$(timestamp)" >> "$timing_file"
+    echo "prep_start=$(timestamp)" >>"$timing_file"
 
     log_info "Waiting for Prep to complete (timeout: ${timeout}s)"
-    local deadline=$(( $(date +%s) + timeout ))
+    local deadline=$(($(date +%s) + timeout))
 
-    while (( $(date +%s) < deadline )); do
+    while (($(date +%s) < deadline)); do
         local status
         status=$(spoke_oc get imagebasedupgrades upgrade \
             -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}' 2>/dev/null)
 
         if echo "$status" | grep -q "PrepCompleted: True"; then
-            echo "prep_end=$(timestamp)" >> "$timing_file"
+            echo "prep_end=$(timestamp)" >>"$timing_file"
             log_info "Prep completed"
             return 0
         fi
@@ -54,20 +54,20 @@ wait_for_upgrade() {
     local timeout="${1:-1800}" run_label="$2"
     local timing_file="${RESULTS_DIR}/timing-${run_label}.txt"
 
-    echo "upgrade_start=$(timestamp)" >> "$timing_file"
+    echo "upgrade_start=$(timestamp)" >>"$timing_file"
 
     log_info "Waiting for Upgrade to complete (timeout: ${timeout}s)"
-    local deadline=$(( $(date +%s) + timeout ))
+    local deadline=$(($(date +%s) + timeout))
     local api_went_down=false
 
-    while (( $(date +%s) < deadline )); do
+    while (($(date +%s) < deadline)); do
         local status
         status=$(spoke_oc get imagebasedupgrades upgrade \
             -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}' 2>/dev/null)
 
         if [[ -z "$status" ]]; then
             if ! $api_went_down; then
-                echo "api_down=$(timestamp)" >> "$timing_file"
+                echo "api_down=$(timestamp)" >>"$timing_file"
                 api_went_down=true
                 log_info "API not available (node rebooting)"
             fi
@@ -76,13 +76,13 @@ wait_for_upgrade() {
         fi
 
         if $api_went_down; then
-            echo "api_up=$(timestamp)" >> "$timing_file"
+            echo "api_up=$(timestamp)" >>"$timing_file"
             api_went_down=false
             log_info "API is back"
         fi
 
         if echo "$status" | grep -q "UpgradeCompleted: True"; then
-            echo "upgrade_end=$(timestamp)" >> "$timing_file"
+            echo "upgrade_end=$(timestamp)" >>"$timing_file"
             log_info "Upgrade completed"
             return 0
         fi

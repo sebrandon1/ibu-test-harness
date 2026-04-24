@@ -40,9 +40,9 @@ provision_spoke() {
 
     # Ensure pull-secret exists
     if ! hub_oc get secret pull-secret -n "$ns" &>/dev/null; then
-        hub_oc get secret pull-secret -n "$SEED_NAMESPACE" -o json 2>/dev/null \
-            | jq ".metadata = {\"name\":\"pull-secret\",\"namespace\":\"$ns\"}" \
-            | hub_oc apply -f -
+        hub_oc get secret pull-secret -n "$SEED_NAMESPACE" -o json 2>/dev/null |
+            jq ".metadata = {\"name\":\"pull-secret\",\"namespace\":\"$ns\"}" |
+            hub_oc apply -f -
     fi
 
     # Ensure BMH secret exists
@@ -54,9 +54,9 @@ provision_spoke() {
     # Ensure extra-manifests-cm exists (container storage partition)
     if ! hub_oc get configmap extra-manifests-cm -n "$ns" &>/dev/null; then
         if [[ -n "${EXTRA_MANIFESTS_SOURCE_NS:-}" ]]; then
-            hub_oc get configmap extra-manifests-cm -n "$EXTRA_MANIFESTS_SOURCE_NS" -o json \
-                | jq ".metadata = {\"name\":\"extra-manifests-cm\",\"namespace\":\"$ns\"}" \
-                | hub_oc apply -f -
+            hub_oc get configmap extra-manifests-cm -n "$EXTRA_MANIFESTS_SOURCE_NS" -o json |
+                jq ".metadata = {\"name\":\"extra-manifests-cm\",\"namespace\":\"$ns\"}" |
+                hub_oc apply -f -
         else
             create_container_storage_configmap "$ns"
         fi
@@ -132,8 +132,8 @@ wait_for_provisioning() {
     local name="$1" ns="$2" timeout="${3:-5400}"
     log_info "Monitoring provisioning of $name (timeout: ${timeout}s)"
 
-    local deadline=$(( $(date +%s) + timeout ))
-    while (( $(date +%s) < deadline )); do
+    local deadline=$(($(date +%s) + timeout))
+    while (($(date +%s) < deadline)); do
         local bmh_state aci_status agent_status
         bmh_state=$(hub_oc get bmh -n "$ns" --no-headers 2>/dev/null | awk '{print $2}')
         agent_status=$(hub_oc get agent -n "$ns" --no-headers 2>/dev/null | awk '{print $4, $5}')

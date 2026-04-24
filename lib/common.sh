@@ -6,8 +6,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-log_info()  { echo -e "${GREEN}[INFO]${NC}  $(date -u +%H:%M:%S) $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $(date -u +%H:%M:%S) $*"; }
+log_info() { echo -e "${GREEN}[INFO]${NC}  $(date -u +%H:%M:%S) $*"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC}  $(date -u +%H:%M:%S) $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $(date -u +%H:%M:%S) $*" >&2; }
 
 timestamp() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
@@ -22,12 +22,12 @@ duration_seconds() {
         s=$(date -jf '%Y-%m-%dT%H:%M:%SZ' "$start" +%s 2>/dev/null || date -jf '%Y-%m-%dT%T' "${start%Z}" +%s)
         e=$(date -jf '%Y-%m-%dT%H:%M:%SZ' "$end" +%s 2>/dev/null || date -jf '%Y-%m-%dT%T' "${end%Z}" +%s)
     fi
-    echo $(( e - s ))
+    echo $((e - s))
 }
 
 format_duration() {
     local secs="$1"
-    printf '%dm%02ds' $(( secs / 60 )) $(( secs % 60 ))
+    printf '%dm%02ds' $((secs / 60)) $((secs % 60))
 }
 
 # Generic polling function.
@@ -35,12 +35,12 @@ format_duration() {
 wait_for() {
     local timeout="$1" interval="$2" desc="$3"
     shift 3
-    local deadline=$(( $(date +%s) + timeout ))
+    local deadline=$(($(date +%s) + timeout))
     while true; do
         if "$@" 2>/dev/null; then
             return 0
         fi
-        if (( $(date +%s) >= deadline )); then
+        if (($(date +%s) >= deadline)); then
             log_error "Timed out after ${timeout}s waiting for: $desc"
             return 1
         fi
@@ -67,7 +67,7 @@ fetch_kubeconfig() {
     local name="$1" ns="$2" varname="$3"
     local path="${RESULTS_DIR}/${name}.kubeconfig"
     hub_oc get secret -n "$ns" "${name}-admin-kubeconfig" \
-        -o jsonpath='{.data.kubeconfig}' | base64 -d > "$path"
+        -o jsonpath='{.data.kubeconfig}' | base64 -d >"$path"
     eval "export ${varname}=${path}"
     log_info "Fetched kubeconfig for $name → $path"
 }
@@ -105,7 +105,7 @@ check_prerequisites() {
     for cmd in oc "$ENGINE" skopeo kustomize jq; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
-    if (( ${#missing[@]} > 0 )); then
+    if ((${#missing[@]} > 0)); then
         log_error "Missing prerequisites: ${missing[*]}"
         return 1
     fi

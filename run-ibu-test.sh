@@ -29,13 +29,31 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --config)      CONFIG_FILE="$2"; shift 2 ;;
-        --skip-build)  SKIP_BUILD=true; shift ;;
-        --skip-seed)   SKIP_SEED=true; shift ;;
-        --skip-baseline) SKIP_BASELINE=true; shift ;;
-        --runs)        NUM_RUNS_OVERRIDE="$2"; shift 2 ;;
-        -h|--help)     usage ;;
-        *)             echo "Unknown option: $1"; usage ;;
+        --config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
+        --skip-seed)
+            SKIP_SEED=true
+            shift
+            ;;
+        --skip-baseline)
+            SKIP_BASELINE=true
+            shift
+            ;;
+        --runs)
+            NUM_RUNS_OVERRIDE="$2"
+            shift 2
+            ;;
+        -h | --help) usage ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
     esac
 done
 
