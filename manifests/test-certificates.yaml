@@ -1,0 +1,50 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-certs
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: test-ns-issuer
+  namespace: test-certs
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ibu-test-cert
+  namespace: test-certs
+spec:
+  secretName: ibu-test-cert-tls
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  commonName: ibu-test.${SPOKE_NAME}.example.com
+  dnsNames:
+    - ibu-test.${SPOKE_NAME}.example.com
+    - "*.ibu-test.${SPOKE_NAME}.example.com"
+  duration: 8760h
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ibu-test-cert-ns
+  namespace: test-certs
+spec:
+  secretName: ibu-test-cert-ns-tls
+  issuerRef:
+    name: test-ns-issuer
+    kind: Issuer
+  commonName: ibu-test-ns.${SPOKE_NAME}.example.com
+  dnsNames:
+    - ibu-test-ns.${SPOKE_NAME}.example.com
+  duration: 8760h
