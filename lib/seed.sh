@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Seed image generation
 
 detach_seed_from_hub() {
@@ -20,7 +20,6 @@ deploy_lca_direct() {
         return 1
     fi
 
-    # kustomize image reference is already set from the build phase
     kustomize build "$lca_dir/config/default" | seed_oc apply --server-side -f -
 
     wait_for 120 10 "LCA pod Running on seed" \
@@ -45,17 +44,7 @@ create_seedgen_secret() {
 }
 
 fix_seed_monitoring() {
-    log_info "Fixing monitoring on seed cluster after hub detachment"
-    seed_oc create secret generic observability-alertmanager-accessor \
-        --from-literal=token=dummy -n openshift-monitoring 2>/dev/null || true
-
-    local ca_cert
-    ca_cert=$(seed_oc get configmap kube-root-ca.crt -n openshift-monitoring \
-        -o jsonpath='{.data.ca\.crt}' 2>/dev/null || echo "placeholder")
-    seed_oc create secret generic hub-alertmanager-router-ca \
-        --from-literal=service-ca.crt="$ca_cert" -n openshift-monitoring 2>/dev/null || true
-
-    seed_oc delete pod -n openshift-monitoring -l app.kubernetes.io/name=prometheus --ignore-not-found 2>/dev/null || true
+    fix_monitoring_on seed_oc
 
     wait_for 180 15 "monitoring CO available on seed" \
         bash -c '[[ "$(seed_oc get co monitoring -o jsonpath="{.status.conditions[?(@.type==\"Available\")].status}" 2>/dev/null)" == "True" ]]'
@@ -77,9 +66,9 @@ EOF
     log_info "Waiting for seed generation (this takes 20-40 minutes)"
 
     local timeout=3600
-    local deadline=$(( $(date +%s) + timeout ))
+    local deadline=$(($(date +%s) + timeout))
 
-    while (( $(date +%s) < deadline )); do
+    while (($(date +%s) < deadline)); do
         local status
         status=$(seed_oc get seedgenerators seedimage \
             -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}' 2>/dev/null)

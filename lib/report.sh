@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Report generation
 
 generate_report() {
@@ -6,7 +6,7 @@ generate_report() {
     report_file="${RESULTS_DIR}/report-$(date -u +%Y%m%d-%H%M%S).md"
     log_info "Generating report: $report_file"
 
-    cat > "$report_file" <<EOF
+    cat >"$report_file" <<EOF
 # IBU Timing Test Report
 
 **Generated:** $(timestamp)
@@ -35,7 +35,8 @@ EOF
         run_label=$(basename "$timing_file" .txt | sed 's/timing-//')
 
         (
-            local prep_start prep_end upgrade_start upgrade_end api_down api_up
+            # shellcheck disable=SC2034
+            local prep_start="" prep_end="" upgrade_start="" upgrade_end="" api_down="" api_up=""
             # shellcheck source=/dev/null
             source "$timing_file"
             local reboot_dur stabilize_dur total_dur
@@ -43,7 +44,7 @@ EOF
             stabilize_dur=$(duration_seconds "$api_up" "$upgrade_end")
             total_dur=$(duration_seconds "$upgrade_start" "$upgrade_end")
             echo "| $run_label | $(format_duration "$reboot_dur") | $(format_duration "$stabilize_dur") | $(format_duration "$total_dur") |"
-        ) >> "$report_file"
+        ) >>"$report_file"
     done
 
     # Certificate checksums
@@ -53,7 +54,7 @@ EOF
     done
 
     if $has_checksums; then
-        cat >> "$report_file" <<'EOF'
+        cat >>"$report_file" <<'EOF'
 
 ## Certificate Preservation
 
@@ -76,12 +77,12 @@ EOF
                 else
                     match="FAIL"
                 fi
-                echo "| $run_label | $secret | ${checksum:0:16}... | ${post_checksum:0:16}... | $match |" >> "$report_file"
-            done < "$pre_file"
+                echo "| $run_label | $secret | ${checksum:0:16}... | ${post_checksum:0:16}... | $match |" >>"$report_file"
+            done <"$pre_file"
         done
     fi
 
-    cat >> "$report_file" <<EOF
+    cat >>"$report_file" <<EOF
 
 ## Test Artifacts
 

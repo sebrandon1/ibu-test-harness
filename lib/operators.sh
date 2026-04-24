@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Operator installation and management
 
 approve_all_install_plans() {
@@ -8,8 +8,8 @@ approve_all_install_plans() {
         [[ -z "$ns" ]] && continue
         spoke_oc patch installplan "$name" -n "$ns" --type=merge \
             -p '{"spec":{"approved":true}}' 2>/dev/null && count=$((count + 1))
-    done < <(spoke_oc get installplan -A --no-headers 2>/dev/null \
-        | grep "false$" | awk '{print $1"/"$2}')
+    done < <(spoke_oc get installplan -A --no-headers 2>/dev/null |
+        grep "false$" | awk '{print $1"/"$2}')
     log_info "Approved $count install plans"
 }
 
@@ -52,13 +52,11 @@ verify_lca_image() {
 
 setup_spoke_operators() {
     approve_all_install_plans
-    sleep 30
+    wait_for_operators
+    # Approve again in case new install plans appeared during operator startup
     approve_all_install_plans
 
-    wait_for_operators
     create_sriov_operator_config
-
-    sleep 60
     wait_for_sriov_nodestate
     fix_monitoring_secrets
     wait_for_healthy_cluster

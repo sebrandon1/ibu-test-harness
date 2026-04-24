@@ -29,49 +29,61 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --config)      CONFIG_FILE="$2"; shift 2 ;;
-        --skip-build)  SKIP_BUILD=true; shift ;;
-        --skip-seed)   SKIP_SEED=true; shift ;;
-        --skip-baseline) SKIP_BASELINE=true; shift ;;
-        --runs)        NUM_RUNS_OVERRIDE="$2"; shift 2 ;;
-        -h|--help)     usage ;;
-        *)             echo "Unknown option: $1"; usage ;;
+        --config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
+        --skip-seed)
+            SKIP_SEED=true
+            shift
+            ;;
+        --skip-baseline)
+            SKIP_BASELINE=true
+            shift
+            ;;
+        --runs)
+            NUM_RUNS_OVERRIDE="$2"
+            shift 2
+            ;;
+        -h | --help) usage ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
     esac
 done
 
-# Load config
+# Load config — set -a exports all sourced variables for bash -c subshells
 if [[ ! -f "$CONFIG_FILE" ]]; then
     echo "Config file not found: $CONFIG_FILE"
     echo "Copy config.env.example to config.env and fill in your values."
     exit 1
 fi
+set -a
 # shellcheck source=/dev/null
 source "$CONFIG_FILE"
+set +a
 
 [[ -n "$NUM_RUNS_OVERRIDE" ]] && NUM_RUNS="$NUM_RUNS_OVERRIDE"
 
 # Set up results directory
 RESULTS_DIR="${SCRIPT_DIR}/results/$(date -u +%Y%m%d-%H%M%S)"
-mkdir -p "$RESULTS_DIR"
 export RESULTS_DIR
+mkdir -p "$RESULTS_DIR"
+
+export SPOKE_KUBECONFIG="${RESULTS_DIR}/${SPOKE_NAME}.kubeconfig"
+export SEED_KUBECONFIG="${RESULTS_DIR}/${SEED_NAME}.kubeconfig"
+export SCRIPT_DIR
 
 # Source library scripts
 for lib in common hub spoke provision operators certmanager ibu seed report; do
     # shellcheck source=/dev/null
     source "${SCRIPT_DIR}/lib/${lib}.sh"
 done
-
-# Export for subshells used in wait_for
-export HUB_API HUB_USER HUB_PASS
-export SPOKE_NAME SPOKE_NAMESPACE SEED_NAME SEED_NAMESPACE
-export SOURCE_VERSION TARGET_VERSION
-export REGISTRY LCA_IMAGE RECERT_IMAGE SEED_IMAGE CATALOG_IMAGE BUNDLE_IMAGE
-export PLATFORM ENGINE
-export LCA_REPO_PATH RECERT_REPO_PATH CLUSTER_INSTANCE_PATH
-export BMC_USER BMC_PASS DISK_DEVICE CONTAINER_AUTH_FILE
-export SPOKE_KUBECONFIG="${RESULTS_DIR}/${SPOKE_NAME}.kubeconfig"
-export SEED_KUBECONFIG="${RESULTS_DIR}/${SEED_NAME}.kubeconfig"
-export SCRIPT_DIR
 
 main() {
     log_info "=========================================="

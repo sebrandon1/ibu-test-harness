@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # cert-manager installation and test certificate management
 
 install_certmanager() {
@@ -38,7 +38,7 @@ record_tls_checksums() {
         local checksum
         checksum=$(spoke_oc get secret "$secret" -n test-certs \
             -o jsonpath='{.data.tls\.key}' | base64 -d | sha256sum | awk '{print $1}')
-        echo "$secret: $checksum" >> "$outfile"
+        echo "$secret: $checksum" >>"$outfile"
         log_info "  $secret: $checksum"
     done
 }
@@ -60,7 +60,7 @@ verify_tls_checksums() {
             log_error "  $secret: MISMATCH (pre=$checksum post=$post_checksum)"
             pass=false
         fi
-    done < "$pre_file"
+    done <"$pre_file"
 
     if $pass; then
         log_info "All TLS key checksums match"
